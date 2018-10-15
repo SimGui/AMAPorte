@@ -1,20 +1,32 @@
 package ovh.webnlog.amaporte.ui;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
 
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.widget.Toast;
 
+import com.mapbox.android.core.location.LocationEngine;
+import com.mapbox.android.core.location.LocationEngineListener;
+import com.mapbox.android.core.location.LocationEnginePriority;
+import com.mapbox.android.core.location.LocationEngineProvider;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
+import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.constants.Style;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -26,6 +38,7 @@ import com.mapbox.mapboxsdk.plugins.localization.MapLocale;
 import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerPlugin;
 import com.mapbox.mapboxsdk.plugins.locationlayer.modes.CameraMode;
 import com.mapbox.mapboxsdk.plugins.locationlayer.modes.RenderMode;
+import com.mapbox.mapboxsdk.style.light.Position;
 
 import java.util.List;
 
@@ -33,18 +46,24 @@ import ovh.webnlog.amaporte.R;
 import ovh.webnlog.amaporte.utils.Constant;
 
 
-public class MainActivity extends NavigationActivity implements OnMapReadyCallback, PermissionsListener {
+public class MainActivity extends NavigationActivity implements OnMapReadyCallback, PermissionsListener, LocationEngineListener {
 
     private MapView mapView;
     private MapboxMap map;
     private LocalizationPlugin localizationPlugin;
-    private LocationLayerPlugin locationLayerPlugin;
     private PermissionsManager permissionsManager;
+    private LocationEngine locationEngine;
+    private LocationEngineProvider locationEngineProvider;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if(permissionDenied()) {
+            permissionsManager = new PermissionsManager(this);
+            permissionsManager.requestLocationPermissions(this);
+        }
 
         initMapBox(savedInstanceState);
         initNavigation();
@@ -53,8 +72,22 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
     @Override
     public void onMapReady(MapboxMap mapboxMap) {
         map = mapboxMap;
+
         setMapBoxLanguage(mapboxMap);
-        enableLocationPlugin();
+
+        if(!permissionDenied()) {
+            setLocationEngine();
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void setLocationEngine() {
+        locationEngineProvider = new LocationEngineProvider(this);
+        locationEngine = locationEngineProvider.obtainBestLocationEngineAvailable();
+        locationEngine.addLocationEngineListener(this);
+        locationEngine.setPriority(LocationEnginePriority.HIGH_ACCURACY);
+        locationEngine.activate();
+
     }
 
     // PRIVATE METHODS
@@ -92,30 +125,14 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
 
     @Override
     public void onExplanationNeeded(List<String> permissionsToExplain) {
-        Toast.makeText(this, "explanation", Toast.LENGTH_LONG).show();
+
     }
 
     @Override
     public void onPermissionResult(boolean granted) {
-        if (granted) {
-            enableLocationPlugin();
-        } else {
-            Toast.makeText(this, "PermissionResult", Toast.LENGTH_LONG).show();
-            finish();
+        if(granted) {
+            setLocationEngine();
         }
-    }
-
-    private void enableLocationPlugin() {
-        if (PermissionsManager.areLocationPermissionsGranted(this)) {
-            locationLayerPlugin = new LocationLayerPlugin(mapView, map);
-            locationLayerPlugin.setCameraMode(CameraMode.TRACKING);
-            locationLayerPlugin.setRenderMode(RenderMode.COMPASS);
-            getLifecycle().addObserver(locationLayerPlugin);
-        } else {
-            permissionsManager = new PermissionsManager(this);
-            permissionsManager.requestLocationPermissions(this);
-        }
-        getLifecycle().addObserver(locationLayerPlugin);
     }
 
     @Override
@@ -123,10 +140,16 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
         permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
+    @SuppressLint("MissingPermission")
     @Override
     public void onStart() {
         super.onStart();
         mapView.onStart();
+
+        if(!permissionDenied() && locationEngine != null) {
+            locationEngine.requestLocationUpdates();
+            locationEngine.addLocationEngineListener(this);
+        }
     }
 
     @Override
@@ -145,6 +168,10 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
     public void onStop() {
         super.onStop();
         mapView.onStop();
+
+        locationEngine.removeLocationEngineListener(this);
+        locationEngine.removeLocationUpdates();
+        locationEngine.deactivate();
     }
 
     @Override
@@ -165,4 +192,33 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
         mapView.onSaveInstanceState(outState);
     }
 
+    @SuppressLint("MissingPermission")
+    @Override
+    public void onConnected() {
+        if(!permissionDenied()) {
+            locationEngine.requestLocationUpdates();
+        }
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        moveCamera(location);
+    }
+
+    private void moveCamera(Location location) {
+        CameraPosition position = new CameraPosition.Builder()
+                .target(new LatLng(location.getLatitude(), location.getLongitude())) // Sets the new camera position
+                .zoom(12) // Sets the zoom
+                .build(); // Creates a CameraPosition from the builder
+
+        map.animateCamera(CameraUpdateFactory
+                .newCameraPosition(position), 5000);
+
+        map.addMarker(new MarkerOptions()
+                .position(new LatLng(location.getLatitude(), location.getLongitude())));
+    }
+
+    private boolean permissionDenied() {
+        return !PermissionsManager.areLocationPermissionsGranted(this);
+    }
 }
