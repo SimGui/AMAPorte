@@ -2,12 +2,17 @@ package ovh.webnlog.amaporte.ui;
 
 import android.os.Bundle;
 
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.NavigationView;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.Toolbar;
+import android.widget.Toast;
+
+import com.mapbox.android.core.permissions.PermissionsListener;
+import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.constants.Style;
@@ -18,17 +23,23 @@ import com.mapbox.mapboxsdk.maps.MapboxMapOptions;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin;
 import com.mapbox.mapboxsdk.plugins.localization.MapLocale;
+import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerPlugin;
+import com.mapbox.mapboxsdk.plugins.locationlayer.modes.CameraMode;
+import com.mapbox.mapboxsdk.plugins.locationlayer.modes.RenderMode;
+
+import java.util.List;
 
 import ovh.webnlog.amaporte.R;
 import ovh.webnlog.amaporte.utils.Constant;
 
 
-public class MainActivity extends NavigationActivity implements OnMapReadyCallback {
+public class MainActivity extends NavigationActivity implements OnMapReadyCallback, PermissionsListener {
 
     private MapView mapView;
     private MapboxMap map;
     private LocalizationPlugin localizationPlugin;
-
+    private LocationLayerPlugin locationLayerPlugin;
+    private PermissionsManager permissionsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,8 +54,74 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
     public void onMapReady(MapboxMap mapboxMap) {
         map = mapboxMap;
         setMapBoxLanguage(mapboxMap);
+        enableLocationPlugin();
     }
 
+    // PRIVATE METHODS
+
+    private void initMapBox(Bundle savedInstanceState) {
+        Mapbox.getInstance(this, Constant.MAPBOX_TOKEN);
+
+        mapView = findViewById(R.id.mapView);
+        mapView.onCreate(savedInstanceState);
+        mapView.getMapAsync(this);
+    }
+
+    private void initNavigation() {
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(view -> Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show());
+
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.addDrawerListener(toggle);
+        toggle.syncState();
+
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
+    }
+
+    private void setMapBoxLanguage(MapboxMap mapboxMap) {
+        localizationPlugin = new LocalizationPlugin(mapView, mapboxMap);
+        localizationPlugin.matchMapLanguageWithDeviceDefault();
+    }
+
+    @Override
+    public void onExplanationNeeded(List<String> permissionsToExplain) {
+        Toast.makeText(this, "explanation", Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onPermissionResult(boolean granted) {
+        if (granted) {
+            enableLocationPlugin();
+        } else {
+            Toast.makeText(this, "PermissionResult", Toast.LENGTH_LONG).show();
+            finish();
+        }
+    }
+
+    private void enableLocationPlugin() {
+        if (PermissionsManager.areLocationPermissionsGranted(this)) {
+            locationLayerPlugin = new LocationLayerPlugin(mapView, map);
+            locationLayerPlugin.setCameraMode(CameraMode.TRACKING);
+            locationLayerPlugin.setRenderMode(RenderMode.COMPASS);
+            getLifecycle().addObserver(locationLayerPlugin);
+        } else {
+            permissionsManager = new PermissionsManager(this);
+            permissionsManager.requestLocationPermissions(this);
+        }
+        getLifecycle().addObserver(locationLayerPlugin);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
 
     @Override
     public void onStart() {
@@ -86,39 +163,6 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         mapView.onSaveInstanceState(outState);
-    }
-
-    // PRIVATE METHODS
-
-    private void initMapBox(Bundle savedInstanceState) {
-        Mapbox.getInstance(this, Constant.MAPBOX_TOKEN);
-
-        mapView = findViewById(R.id.mapView);
-        mapView.onCreate(savedInstanceState);
-        mapView.getMapAsync(this);
-    }
-
-    private void initNavigation() {
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(view -> Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show());
-
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-
-        NavigationView navigationView = findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
-    }
-
-    private void setMapBoxLanguage(MapboxMap mapboxMap) {
-        localizationPlugin = new LocalizationPlugin(mapView, mapboxMap);
-        localizationPlugin.matchMapLanguageWithDeviceDefault();
     }
 
 }
