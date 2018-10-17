@@ -1,16 +1,21 @@
 package ovh.webnlog.amaporte.ui;
 
 import android.annotation.SuppressLint;
+import android.app.ActionBar;
+import android.app.SearchManager;
+import android.content.Context;
 import android.location.Location;
 import android.os.Bundle;
 
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.design.widget.NavigationView;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
 
 import com.mapbox.android.core.location.LocationEngine;
 import com.mapbox.android.core.location.LocationEngineListener;
@@ -22,7 +27,6 @@ import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.Icon;
 import com.mapbox.mapboxsdk.annotations.IconFactory;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
-import com.mapbox.mapboxsdk.annotations.MarkerViewOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -37,7 +41,7 @@ import ovh.webnlog.amaporte.R;
 import ovh.webnlog.amaporte.utils.Constant;
 
 
-public class MainActivity extends NavigationActivity implements OnMapReadyCallback, PermissionsListener, LocationEngineListener {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, PermissionsListener, LocationEngineListener {
 
     private MapView mapView;
     private MapboxMap map;
@@ -137,9 +141,7 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
     @SuppressLint("MissingPermission")
     @Override
     public void onConnected() {
-        if(!permissionDenied()) {
-            locationEngine.requestLocationUpdates();
-        }
+        locateUser();
     }
 
     @Override
@@ -161,19 +163,30 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(view -> Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show());
+        //getSupportActionBar().setDisplayShowTitleEnabled(false);
 
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-
-        NavigationView navigationView = findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
     }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_main, menu);
+/*
+        // Associate searchable configuration with the SearchView
+        SearchManager searchManager =
+                (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView =
+                (SearchView) menu.findItem(R.id.search).getActionView();
+        searchView.setSearchableInfo(
+                searchManager.getSearchableInfo(getComponentName()));*/
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        return super.onOptionsItemSelected(item);
+    }
+
 
     @SuppressLint("MissingPermission")
     private void setLocationEngine() {
@@ -198,10 +211,11 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
                 .build();
 
         map.animateCamera(CameraUpdateFactory
-                .newCameraPosition(position), 5000);
+                .newCameraPosition(position), 4000);
 
         IconFactory iconFactory = IconFactory.getInstance(MainActivity.this);
-        Icon icon = iconFactory.fromResource(R.drawable.ic_location_blue_dot);
+        Icon icon = iconFactory.fromResource(R.drawable.ic_location_small_blue_dot);
+
         map.addMarker(new MarkerOptions()
                 .position(new LatLng(location.getLatitude(), location.getLongitude()))
                 .icon(icon));
@@ -216,6 +230,24 @@ public class MainActivity extends NavigationActivity implements OnMapReadyCallba
 
     private boolean permissionDenied() {
         return !PermissionsManager.areLocationPermissionsGranted(this);
+    }
+
+    @SuppressLint("MissingPermission")
+    public void locateUser(View view) {
+        locateUser();
+    }
+
+    @SuppressLint("MissingPermission")
+    private void locateUser() {
+        if(!permissionDenied() && locationEngine != null) {
+            Location lastLocation = locationEngine.getLastLocation();
+            moveCamera(lastLocation);
+        } else {
+            initPermissionManager();
+        }
+    }
+    public void addAmap(View view) {
+
     }
 
     //endRegion
