@@ -1,14 +1,13 @@
 package ovh.webnlog.amaporte.ui;
 
 import android.annotation.SuppressLint;
-import android.app.ActionBar;
+
 import android.app.SearchManager;
 import android.content.Context;
 import android.location.Location;
 import android.os.Bundle;
 
 import android.support.annotation.NonNull;
-import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
@@ -16,20 +15,16 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-
-import com.mapbox.android.core.location.LocationEngine;
 import com.mapbox.android.core.location.LocationEngineListener;
-import com.mapbox.android.core.location.LocationEnginePriority;
-import com.mapbox.android.core.location.LocationEngineProvider;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
-import com.mapbox.mapboxsdk.annotations.Icon;
-import com.mapbox.mapboxsdk.annotations.IconFactory;
-import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.location.LocationComponent;
+import com.mapbox.mapboxsdk.location.modes.CameraMode;
+import com.mapbox.mapboxsdk.location.modes.RenderMode;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
@@ -47,8 +42,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MapboxMap map;
     private LocalizationPlugin localizationPlugin;
     private PermissionsManager permissionsManager;
-    private LocationEngine locationEngine;
-    private LocationEngineProvider locationEngineProvider;
+    private LocationComponent locationComponent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,12 +55,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
+    @SuppressLint("MissingPermission")
     @Override
     public void onMapReady(MapboxMap mapboxMap) {
         map = mapboxMap;
-
         setMapBoxLanguage(mapboxMap);
-        setLocationEngine();
+        setLocationComponent();
     }
 
     @Override
@@ -77,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onPermissionResult(boolean granted) {
         if(granted) {
-            setLocationEngine();
+            setLocationComponent();
         }
     }
 
@@ -86,16 +80,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
-    @SuppressLint("MissingPermission")
     @Override
     public void onStart() {
         super.onStart();
         mapView.onStart();
-
-        if(!permissionDenied() && locationEngine != null) {
-            locationEngine.requestLocationUpdates();
-            locationEngine.addLocationEngineListener(this);
-        }
     }
 
     @Override
@@ -114,10 +102,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onStop() {
         super.onStop();
         mapView.onStop();
-
-        locationEngine.removeLocationEngineListener(this);
-        locationEngine.removeLocationUpdates();
-        locationEngine.deactivate();
     }
 
     @Override
@@ -138,17 +122,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapView.onSaveInstanceState(outState);
     }
 
-    @SuppressLint("MissingPermission")
-    @Override
-    public void onConnected() {
-        locateUser();
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        moveCamera(location);
-    }
-
     //region PRIVATE METHODS
 
     private void initMapBox(Bundle savedInstanceState) {
@@ -162,22 +135,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void initNavigation() {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        //getSupportActionBar().setDisplayShowTitleEnabled(false);
-
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_main, menu);
-/*
-        // Associate searchable configuration with the SearchView
-        SearchManager searchManager =
-                (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        SearchView searchView =
-                (SearchView) menu.findItem(R.id.search).getActionView();
-        searchView.setSearchableInfo(
-                searchManager.getSearchableInfo(getComponentName()));*/
+
+        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView = (SearchView) menu.findItem(R.id.search).getActionView();
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
 
         return true;
     }
@@ -187,38 +154,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return super.onOptionsItemSelected(item);
     }
 
-
-    @SuppressLint("MissingPermission")
-    private void setLocationEngine() {
-        if(!permissionDenied()) {
-            locationEngineProvider = new LocationEngineProvider(this);
-            locationEngine = locationEngineProvider.obtainBestLocationEngineAvailable();
-            locationEngine.addLocationEngineListener(this);
-            locationEngine.setPriority(LocationEnginePriority.HIGH_ACCURACY);
-            locationEngine.activate();
-        }
-    }
-
     private void setMapBoxLanguage(MapboxMap mapboxMap) {
         localizationPlugin = new LocalizationPlugin(mapView, mapboxMap);
         localizationPlugin.matchMapLanguageWithDeviceDefault();
     }
 
-    private void moveCamera(Location location) {
-        CameraPosition position = new CameraPosition.Builder()
-                .target(new LatLng(location.getLatitude(), location.getLongitude()))
-                .zoom(12)
-                .build();
+    @SuppressLint("MissingPermission")
+    private void setLocationComponent() {
+        if(permissionDenied()) {
+            initPermissionManager();
+            return;
+        }
 
-        map.animateCamera(CameraUpdateFactory
-                .newCameraPosition(position), 4000);
-
-        IconFactory iconFactory = IconFactory.getInstance(MainActivity.this);
-        Icon icon = iconFactory.fromResource(R.drawable.ic_location_small_blue_dot);
-
-        map.addMarker(new MarkerOptions()
-                .position(new LatLng(location.getLatitude(), location.getLongitude()))
-                .icon(icon));
+        locationComponent = map.getLocationComponent();
+        locationComponent.activateLocationComponent(this);
+        locationComponent.setLocationComponentEnabled(true);
+        locationComponent.setRenderMode(RenderMode.NORMAL);
+        locationComponent.setCameraMode(CameraMode.TRACKING);
+        locationComponent.getLocationEngine().addLocationEngineListener(this);
     }
 
     private void initPermissionManager() {
@@ -233,21 +186,42 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @SuppressLint("MissingPermission")
-    public void locateUser(View view) {
-        locateUser();
+    private void moveCamera() {
+
+        if(permissionDenied()) {
+            initPermissionManager();
+            return;
+        }
+
+        Location location = locationComponent.getLastKnownLocation();
+
+        if(location != null) {
+            CameraPosition position = new CameraPosition.Builder()
+                    .target(new LatLng(location.getLatitude(), location.getLongitude()))
+                    .zoom(12)
+                    .build();
+
+            map.easeCamera(CameraUpdateFactory.newCameraPosition(position), 4000);
+        }
     }
 
     @SuppressLint("MissingPermission")
-    private void locateUser() {
-        if(!permissionDenied() && locationEngine != null) {
-            Location lastLocation = locationEngine.getLastLocation();
-            moveCamera(lastLocation);
-        } else {
-            initPermissionManager();
-        }
+    public void locateUser(View view) {
+        moveCamera();
     }
+
     public void addAmap(View view) {
 
+    }
+
+    @Override
+    public void onConnected() {
+
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        moveCamera();
     }
 
     //endRegion
