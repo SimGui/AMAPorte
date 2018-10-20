@@ -6,9 +6,8 @@ import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.widget.Toast;
 
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
@@ -27,7 +26,6 @@ import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin;
 import java.util.List;
 
 import ovh.webnlog.amaporte.R;
-import ovh.webnlog.amaporte.ui.MainActivity;
 
 import static android.content.Context.LOCATION_SERVICE;
 
@@ -47,7 +45,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
     }
 
     public void initMapBox(Bundle savedInstanceState) {
-        if(gpsTurnOff()) {
+        if(gpsIsTurnOff()) {
             showGPSDisabledAlertToUser();
         }
 
@@ -72,7 +70,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
 
     @SuppressLint("MissingPermission")
     public void setLocationComponent() {
-        if(permissionDenied()) {
+        if (permissionDenied()) {
             initPermissionManager();
             return;
         }
@@ -82,10 +80,14 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         locationComponent.setLocationComponentEnabled(true);
         locationComponent.setRenderMode(RenderMode.NORMAL);
         locationComponent.setCameraMode(CameraMode.TRACKING);
-        locationComponent.zoomWhileTracking(12,2000);
+        locationComponent.zoomWhileTracking(12, 2000);
     }
 
-    private boolean gpsTurnOff() {
+    public void disableLocationComponent() {
+        locationComponent.setLocationComponentEnabled(false);
+    }
+
+    private boolean gpsIsTurnOff() {
         LocationManager locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
 
         return !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
@@ -99,12 +101,26 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
             return;
         }
 
+        if (haveToFindPosition()) {
+            locationComponent.setLocationComponentEnabled(true);
+            Toast.makeText(context, "Recherche de votre position...Veuillez patienter", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         Location location = locationComponent.getLastKnownLocation();
 
-        if(location != null) {
-            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-            moveCamera(latLng, CAMERA_MOVE_DURATION);
+        if(location == null) {
+            Toast.makeText(context, context.getString(R.string.unknow_position), Toast.LENGTH_LONG).show();
+            return;
         }
+
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        moveCamera(latLng, CAMERA_MOVE_DURATION);
+    }
+
+    @SuppressLint("MissingPermission")
+    private boolean haveToFindPosition() {
+        return !locationComponent.isLocationComponentEnabled() && !gpsIsTurnOff() && locationComponent.getLastKnownLocation() == null;
     }
 
     public void moveCamera(LatLng latLng, int duration) {
@@ -114,7 +130,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
                 .build();
 
         if(duration > 0) {
-            map.easeCamera(CameraUpdateFactory.newCameraPosition(position), duration);
+            map.animateCamera(CameraUpdateFactory.newCameraPosition(position), duration);
             return;
         }
 

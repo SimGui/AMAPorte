@@ -10,4 +10,5 @@
     <string name="search_label">Recherche</string>
     <string name="ask_gps_activation">Pour une meilleure localisation, merci d\'activer le GPS de votre téléphone</string>
     <string name="error_geocoder_response">Impossible de récupérer les suggestions</string>
+    <string name="unknow_position">Votre position est inconnue, activez le GPS</string>
 </resources>

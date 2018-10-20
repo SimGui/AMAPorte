@@ -40,7 +40,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 
-public class MainActivity extends AppCompatActivity implements SearchView.OnQueryTextListener, Callback<GeocodingResponse>, AdapterView.OnItemClickListener {
+public class MainActivity extends AppCompatActivity implements SearchView.OnQueryTextListener, Callback<GeocodingResponse>, AdapterView.OnItemClickListener, SearchView.OnCloseListener {
 
     private MapsManager mapsManager;
     private ListView searchResultListView;
@@ -63,7 +63,6 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
         mapsManager = new MapsManager(mapView, this);
         mapsManager.initMapBox(savedInstanceState);
     }
-
 
     @Override
     public void onStart() {
@@ -123,6 +122,7 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
         SearchView searchView = (SearchView) menu.findItem(R.id.search).getActionView();
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
         searchView.setOnQueryTextListener(this);
+        searchView.setOnCloseListener(this);
 
         return true;
     }
@@ -178,10 +178,17 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        mapsManager.disableLocationComponent();
         CarmenFeature feature = cityList.get(position);
         LatLng latLng = new LatLng(feature.center().latitude(), feature.center().longitude());
-        mapsManager.moveCamera(latLng, 0);
+        mapsManager.moveCamera(latLng, 3000);
         searchResultListView.setVisibility(View.INVISIBLE);
+    }
+
+    @Override
+    public boolean onClose() {
+        searchResultListView.setVisibility(View.GONE);
+        return false;
     }
 
     //endRegion
