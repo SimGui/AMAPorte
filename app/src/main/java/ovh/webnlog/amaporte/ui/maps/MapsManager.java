@@ -12,9 +12,11 @@ import android.widget.Toast;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.geometry.LatLngBounds;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
 import com.mapbox.mapboxsdk.location.modes.RenderMode;
@@ -23,9 +25,15 @@ import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 
 import ovh.webnlog.amaporte.R;
+import ovh.webnlog.amaporte.business.MarkerBusiness;
+import ovh.webnlog.amaporte.model.Amap;
 import ovh.webnlog.amaporte.utils.Constant;
 
 import static android.content.Context.LOCATION_SERVICE;
@@ -38,6 +46,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
     private LocationComponent locationComponent;
     private PermissionsManager permissionsManager;
     private Context context;
+
     private final static int CAMERA_MOVE_DURATION = 2000;
 
     public MapsManager(MapView mapView, Context context) {
@@ -114,12 +123,15 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
                 .zoom(12)
                 .build();
 
+        LatLngBounds latLngBounds = addMarker(latLng);
+
         if(duration > 0) {
-            map.animateCamera(CameraUpdateFactory.newCameraPosition(position), duration);
+            map.animateCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds,50));
             return;
         }
 
         map.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+
     }
 
     @Override
@@ -174,6 +186,28 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
 
         return !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
+
+    private LatLngBounds addMarker(LatLng latLng) {
+
+        MarkerBusiness business = new MarkerBusiness();
+        List<Amap> listAmap = business.getAmap(context, latLng);
+        List<LatLng> listLatLng = new ArrayList<>();
+        listLatLng.add(latLng);
+
+        for (Amap amap : listAmap ) {
+            LatLng latLng1Amap = new LatLng(amap.latitude,amap.longitude);
+            listLatLng.add(latLng1Amap);
+
+            map.addMarker(new MarkerOptions()
+                .position(new LatLng(amap.latitude, amap.longitude))
+                .title(amap.name));
+        }
+
+        LatLngBounds latLngBounds = new LatLngBounds.Builder().includes(listLatLng).build();
+
+        return latLngBounds;
+    }
+
 
     //endregion
 }
