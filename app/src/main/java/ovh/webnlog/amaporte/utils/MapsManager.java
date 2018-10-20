@@ -39,6 +39,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
     private LocationComponent locationComponent;
     private PermissionsManager permissionsManager;
     private Context context;
+    private final static int CAMERA_MOVE_DURATION = 2000;
 
     public MapsManager(MapView mapView, Context context) {
         this.mapView = mapView;
@@ -91,7 +92,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
     }
 
     @SuppressLint("MissingPermission")
-    public void moveCamera() {
+    public void locateUser() {
 
         if(permissionDenied()) {
             initPermissionManager();
@@ -101,13 +102,23 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         Location location = locationComponent.getLastKnownLocation();
 
         if(location != null) {
-            CameraPosition position = new CameraPosition.Builder()
-                    .target(new LatLng(location.getLatitude(), location.getLongitude()))
-                    .zoom(12)
-                    .build();
-
-            map.easeCamera(CameraUpdateFactory.newCameraPosition(position), 2000);
+            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+            moveCamera(latLng, CAMERA_MOVE_DURATION);
         }
+    }
+
+    public void moveCamera(LatLng latLng, int duration) {
+        CameraPosition position = new CameraPosition.Builder()
+                .target(latLng)
+                .zoom(12)
+                .build();
+
+        if(duration > 0) {
+            map.easeCamera(CameraUpdateFactory.newCameraPosition(position), duration);
+            return;
+        }
+
+        map.moveCamera(CameraUpdateFactory.newCameraPosition(position));
     }
 
     private void showGPSDisabledAlertToUser(){
