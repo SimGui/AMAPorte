@@ -1,4 +1,4 @@
-package ovh.webnlog.amaporte.utils;
+package ovh.webnlog.amaporte.ui.maps;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -26,6 +26,7 @@ import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin;
 import java.util.List;
 
 import ovh.webnlog.amaporte.R;
+import ovh.webnlog.amaporte.utils.Constant;
 
 import static android.content.Context.LOCATION_SERVICE;
 
@@ -63,11 +64,6 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         setLocationComponent();
     }
 
-    private void setMapBoxLanguage(MapboxMap mapboxMap) {
-        localizationPlugin = new LocalizationPlugin(mapView, mapboxMap);
-        localizationPlugin.matchMapLanguageWithDeviceDefault();
-    }
-
     @SuppressLint("MissingPermission")
     public void setLocationComponent() {
         if (permissionDenied()) {
@@ -85,12 +81,6 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
 
     public void disableLocationComponent() {
         locationComponent.setLocationComponentEnabled(false);
-    }
-
-    private boolean gpsIsTurnOff() {
-        LocationManager locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
-
-        return !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 
     @SuppressLint("MissingPermission")
@@ -118,11 +108,6 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         moveCamera(latLng, CAMERA_MOVE_DURATION);
     }
 
-    @SuppressLint("MissingPermission")
-    private boolean haveToFindPosition() {
-        return !locationComponent.isLocationComponentEnabled() && !gpsIsTurnOff() && locationComponent.getLastKnownLocation() == null;
-    }
-
     public void moveCamera(LatLng latLng, int duration) {
         CameraPosition position = new CameraPosition.Builder()
                 .target(latLng)
@@ -137,6 +122,41 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         map.moveCamera(CameraUpdateFactory.newCameraPosition(position));
     }
 
+    @Override
+    public void onExplanationNeeded(List<String> permissionsToExplain) {
+
+    }
+
+    @Override
+    public void onPermissionResult(boolean granted) {
+        if(granted) {
+            setLocationComponent();
+        }
+    }
+
+    //region PRIVATE METHODS
+
+    private void initPermissionManager() {
+        if(permissionDenied()) {
+            permissionsManager = new PermissionsManager(this);
+            permissionsManager.requestLocationPermissions((Activity) context);
+        }
+    }
+
+    private void setMapBoxLanguage(MapboxMap mapboxMap) {
+        localizationPlugin = new LocalizationPlugin(mapView, mapboxMap);
+        localizationPlugin.matchMapLanguageWithDeviceDefault();
+    }
+
+    private boolean permissionDenied() {
+        return !PermissionsManager.areLocationPermissionsGranted(context);
+    }
+
+    @SuppressLint("MissingPermission")
+    private boolean haveToFindPosition() {
+        return !locationComponent.isLocationComponentEnabled() && !gpsIsTurnOff() && locationComponent.getLastKnownLocation() == null;
+    }
+
     private void showGPSDisabledAlertToUser(){
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(context);
         alertDialogBuilder.setMessage(R.string.ask_gps_activation)
@@ -149,26 +169,11 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         alert.show();
     }
 
-    private void initPermissionManager() {
-        if(permissionDenied()) {
-            permissionsManager = new PermissionsManager(this);
-            permissionsManager.requestLocationPermissions((Activity) context);
-        }
+    private boolean gpsIsTurnOff() {
+        LocationManager locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
+
+        return !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 
-    private boolean permissionDenied() {
-        return !PermissionsManager.areLocationPermissionsGranted(context);
-    }
-
-    @Override
-    public void onExplanationNeeded(List<String> permissionsToExplain) {
-
-    }
-
-    @Override
-    public void onPermissionResult(boolean granted) {
-        if(granted) {
-            setLocationComponent();
-        }
-    }
+    //endregion
 }
