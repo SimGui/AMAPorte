@@ -200,7 +200,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
 
             map.addMarker(new MarkerOptions()
                 .position(new LatLng(amap.latitude, amap.longitude))
-                .title(amap.name));
+                .title(amap.title));
         }
 
         LatLngBounds latLngBounds = new LatLngBounds.Builder().includes(listLatLng).build();
