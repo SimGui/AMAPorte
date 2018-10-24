@@ -26,10 +26,7 @@ import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 
 import ovh.webnlog.amaporte.R;
 import ovh.webnlog.amaporte.business.MarkerBusiness;
@@ -190,19 +187,19 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
     private LatLngBounds addMarker(LatLng latLng) {
 
         MarkerBusiness business = new MarkerBusiness();
-        List<Amap> listAmap = business.getAmap(context, latLng);
+        List<Amap> listAmap = business.amapList;
         List<LatLng> listLatLng = new ArrayList<>();
         listLatLng.add(latLng);
         listLatLng.add(latLng);
 
-//        for (Amap amap : listAmap ) {
-//            LatLng latLng1Amap = new LatLng(amap.latitude,amap.longitude);
-//            listLatLng.add(latLng1Amap);
-//
-//            map.addMarker(new MarkerOptions()
-//                .position(new LatLng(amap.latitude, amap.longitude))
-//                .title(amap.title));
-//        }
+        for (Amap amap : listAmap ) {
+            LatLng latLng1Amap = new LatLng(amap.latitude,amap.longitude);
+            listLatLng.add(latLng1Amap);
+
+            map.addMarker(new MarkerOptions()
+                .position(new LatLng(amap.latitude, amap.longitude))
+                .title(amap.title));
+        }
 
         //LatLngBounds latLngBounds = new LatLngBounds.Builder().includes(listLatLng).build();
         LatLngBounds latLngBounds = new LatLngBounds.Builder().includes(listLatLng).build();

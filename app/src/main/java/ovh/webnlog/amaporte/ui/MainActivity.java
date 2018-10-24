@@ -16,6 +16,8 @@ import com.mapbox.mapboxsdk.maps.MapView;
 
 import ovh.webnlog.amaporte.R;
 
+import ovh.webnlog.amaporte.business.MarkerBusiness;
+import ovh.webnlog.amaporte.data.MarkerData;
 import ovh.webnlog.amaporte.ui.search.SearchResultManager;
 import ovh.webnlog.amaporte.ui.maps.MapsManager;
 
@@ -30,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        MarkerBusiness markerBusiness = new MarkerBusiness();
+        markerBusiness.getAmap(this,null);
         initMapManager(savedInstanceState);
         initSearchManager();
         initNavigation();
