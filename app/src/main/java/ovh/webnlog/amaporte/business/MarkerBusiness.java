@@ -15,8 +15,9 @@ public class MarkerBusiness {
 
     public List<Amap> getAmap(Context context, LatLng latLng) {
         MarkerData data = new MarkerData();
-        String jsonAmap = data.getAmap(context, latLng);
+        data.getAmap(context, latLng);
 
+        String jsonAmap = "";
         Gson gson = new Gson();
         List<Amap> listAmap = gson.fromJson(jsonAmap, new TypeToken<List<Amap>>(){}.getType());
 

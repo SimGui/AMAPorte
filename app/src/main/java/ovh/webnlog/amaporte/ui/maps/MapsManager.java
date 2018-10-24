@@ -193,21 +193,21 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         List<Amap> listAmap = business.getAmap(context, latLng);
         List<LatLng> listLatLng = new ArrayList<>();
         listLatLng.add(latLng);
+        listLatLng.add(latLng);
 
-        for (Amap amap : listAmap ) {
-            LatLng latLng1Amap = new LatLng(amap.latitude,amap.longitude);
-            listLatLng.add(latLng1Amap);
+//        for (Amap amap : listAmap ) {
+//            LatLng latLng1Amap = new LatLng(amap.latitude,amap.longitude);
+//            listLatLng.add(latLng1Amap);
+//
+//            map.addMarker(new MarkerOptions()
+//                .position(new LatLng(amap.latitude, amap.longitude))
+//                .title(amap.title));
+//        }
 
-            map.addMarker(new MarkerOptions()
-                .position(new LatLng(amap.latitude, amap.longitude))
-                .title(amap.title));
-        }
-
+        //LatLngBounds latLngBounds = new LatLngBounds.Builder().includes(listLatLng).build();
         LatLngBounds latLngBounds = new LatLngBounds.Builder().includes(listLatLng).build();
-
         return latLngBounds;
     }
-
 
     //endregion
 }
