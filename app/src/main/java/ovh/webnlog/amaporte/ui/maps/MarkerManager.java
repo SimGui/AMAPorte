@@ -5,6 +5,10 @@ import android.widget.Toast;
 
 import com.android.volley.VolleyError;
 import com.mapbox.mapboxsdk.annotations.Marker;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
+import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.geometry.LatLngBounds;
+import com.mapbox.mapboxsdk.maps.MapboxMap;
 
 import org.json.JSONObject;
 
@@ -28,6 +32,37 @@ public class MarkerManager implements IMarkerManagerListener {
         markerBusiness.getAmap(context);
     }
 
+    public List<Amap> filterMarkersForLocation(LatLng latLng) {
+        return amapList;
+    }
+
+    public LatLngBounds getBoundsForMarkers(List<Amap> amapList, LatLng userLocation) {
+        List<LatLng> listLatLng = new ArrayList<>();
+        listLatLng.add(userLocation);
+
+        for (Amap amap : amapList ) {
+            LatLng latLngAmap = new LatLng(amap.latitude,amap.longitude);
+            listLatLng.add(latLngAmap);
+        }
+
+        LatLngBounds latLngBounds = new LatLngBounds.Builder().includes(listLatLng).build();
+        return latLngBounds;
+    }
+
+    public void addMarkersOnMap(List<Amap> amapList, LatLng userLocation, MapboxMap map) {
+        map.addMarker(new MarkerOptions()
+        .position(userLocation)
+        .title("Votre position"));
+
+        for (Amap amap : amapList ) {
+            map.addMarker(new MarkerOptions()
+                    .position(new LatLng(amap.latitude, amap.longitude))
+                    .title(amap.title));
+        }
+    }
+
+    //region MarkerListener
+
     @Override
     public void success(List<Amap> amapList) {
         this.amapList = amapList;
@@ -37,4 +72,6 @@ public class MarkerManager implements IMarkerManagerListener {
     public void error(VolleyError error) {
 
     }
+
+    //endregion
 }

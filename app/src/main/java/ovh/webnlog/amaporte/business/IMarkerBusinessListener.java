@@ -2,13 +2,9 @@ package ovh.webnlog.amaporte.business;
 
 import com.android.volley.VolleyError;
 
-import org.json.JSONObject;
-
-import java.util.List;
-
-import ovh.webnlog.amaporte.model.Amap;
+import org.json.JSONArray;
 
 public interface IMarkerBusinessListener {
-   void success(JSONObject response);
+   void success(JSONArray response);
    void error(VolleyError error);
 }

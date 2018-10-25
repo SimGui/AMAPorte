@@ -6,6 +6,7 @@ import com.android.volley.VolleyError;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.lang.reflect.Type;
@@ -32,7 +33,7 @@ public class MarkerBusiness implements IMarkerBusinessListener {
     }
 
     @Override
-    public void success(JSONObject response) {
+    public void success(JSONArray response) {
         Gson gson = new Gson();
         String stringResponse = response.toString();
         Type listType = new TypeToken<List<Amap>>(){}.getType();

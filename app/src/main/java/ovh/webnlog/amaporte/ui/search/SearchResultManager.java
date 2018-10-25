@@ -19,6 +19,7 @@ import com.mapbox.mapboxsdk.geometry.LatLng;
 import java.util.List;
 
 import ovh.webnlog.amaporte.R;
+import ovh.webnlog.amaporte.ui.MainActivity;
 import ovh.webnlog.amaporte.utils.Constant;
 import ovh.webnlog.amaporte.ui.maps.MapsManager;
 import retrofit2.Call;
@@ -89,7 +90,10 @@ public class SearchResultManager implements SearchView.OnQueryTextListener, Call
         mapsManager.disableLocationComponent();
         CarmenFeature feature = cityList.get(position);
         LatLng latLng = new LatLng(feature.center().latitude(), feature.center().longitude());
-        mapsManager.moveCamera(latLng, 3000);
+        MainActivity mainActivity = (MainActivity) context;
+
+        mainActivity.locateUser(latLng);
+
         searchResultListView.setVisibility(View.INVISIBLE);
     }
 

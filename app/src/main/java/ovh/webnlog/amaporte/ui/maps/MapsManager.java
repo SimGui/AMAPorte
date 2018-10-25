@@ -38,13 +38,12 @@ import static android.content.Context.LOCATION_SERVICE;
 public class MapsManager implements OnMapReadyCallback, PermissionsListener {
 
     public MapView mapView;
-    private MapboxMap map;
+    public MapboxMap map;
+    public LatLng location;
     private LocalizationPlugin localizationPlugin;
     private LocationComponent locationComponent;
     private PermissionsManager permissionsManager;
     private Context context;
-
-    private final static int CAMERA_MOVE_DURATION = 2000;
 
     public MapsManager(MapView mapView, Context context) {
         this.mapView = mapView;
@@ -90,44 +89,32 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
     }
 
     @SuppressLint("MissingPermission")
-    public void locateUser() {
+    public LatLng locateUser() {
 
         if(permissionDenied()) {
             initPermissionManager();
-            return;
+            return null;
         }
 
         if (haveToFindPosition()) {
             locationComponent.setLocationComponentEnabled(true);
             Toast.makeText(context, "Recherche de votre position...Veuillez patienter", Toast.LENGTH_LONG).show();
-            return;
+            return null;
         }
 
         Location location = locationComponent.getLastKnownLocation();
 
         if(location == null) {
             Toast.makeText(context, context.getString(R.string.unknow_position), Toast.LENGTH_LONG).show();
-            return;
+            return null;
         }
 
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        moveCamera(latLng, CAMERA_MOVE_DURATION);
+        return new LatLng(location.getLatitude(), location.getLongitude());
     }
 
-    public void moveCamera(LatLng latLng, int duration) {
-        CameraPosition position = new CameraPosition.Builder()
-                .target(latLng)
-                .zoom(12)
-                .build();
+    public void moveCamera(LatLngBounds latLngBounds) {
 
-        LatLngBounds latLngBounds = addMarker(latLng);
-
-        if(duration > 0) {
-            map.animateCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds,50));
-            return;
-        }
-
-        map.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+        map.animateCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds,50));
 
     }
 
@@ -182,26 +169,6 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         LocationManager locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
 
         return !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-    }
-
-    private LatLngBounds addMarker(LatLng latLng) {
-        List<Amap> listAmap = new ArrayList<>();
-        List<LatLng> listLatLng = new ArrayList<>();
-        listLatLng.add(latLng);
-        listLatLng.add(latLng);
-
-        for (Amap amap : listAmap ) {
-            LatLng latLng1Amap = new LatLng(amap.latitude,amap.longitude);
-            listLatLng.add(latLng1Amap);
-
-            map.addMarker(new MarkerOptions()
-                .position(new LatLng(amap.latitude, amap.longitude))
-                .title(amap.title));
-        }
-
-        //LatLngBounds latLngBounds = new LatLngBounds.Builder().includes(listLatLng).build();
-        LatLngBounds latLngBounds = new LatLngBounds.Builder().includes(listLatLng).build();
-        return latLngBounds;
     }
 
     //endregion

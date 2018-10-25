@@ -12,10 +12,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 
+import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.geometry.LatLngBounds;
 import com.mapbox.mapboxsdk.maps.MapView;
+
+import java.util.List;
 
 import ovh.webnlog.amaporte.R;
 
+import ovh.webnlog.amaporte.model.Amap;
 import ovh.webnlog.amaporte.ui.maps.MarkerManager;
 import ovh.webnlog.amaporte.ui.search.SearchResultManager;
 import ovh.webnlog.amaporte.ui.maps.MapsManager;
@@ -53,7 +58,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void locateUser(View view) {
-        mapsManager.locateUser();
+        LatLng userLocation = mapsManager.locateUser();
+        locateUser(userLocation);
+
+    }
+
+    public void locateUser(LatLng userLocation) {
+        if(userLocation == null) {
+            return;
+        }
+        List<Amap> filterListAmap = markerManager.filterMarkersForLocation(userLocation);
+        markerManager.addMarkersOnMap(filterListAmap, userLocation, mapsManager.map);
+        LatLngBounds bounds = markerManager.getBoundsForMarkers(filterListAmap, userLocation);
+        mapsManager.moveCamera(bounds);
     }
 
     public void addAmap(View view) {
