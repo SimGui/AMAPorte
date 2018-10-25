@@ -9,6 +9,7 @@ public class Amap {
     public String delivery;
     public String address;
     public String description;
+    public String contact;
     public String mail;
     public String website;
     public String facebookUrl;

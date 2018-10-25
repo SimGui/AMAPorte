@@ -185,9 +185,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
     }
 
     private LatLngBounds addMarker(LatLng latLng) {
-
-        MarkerBusiness business = new MarkerBusiness();
-        List<Amap> listAmap = business.amapList;
+        List<Amap> listAmap = new ArrayList<>();
         List<LatLng> listLatLng = new ArrayList<>();
         listLatLng.add(latLng);
         listLatLng.add(latLng);

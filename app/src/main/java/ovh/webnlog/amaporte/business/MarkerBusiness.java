@@ -1,39 +1,44 @@
 package ovh.webnlog.amaporte.business;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.android.volley.VolleyError;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.mapbox.mapboxsdk.geometry.LatLng;
 
 import org.json.JSONObject;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
-import ovh.webnlog.amaporte.data.MarkerData;
+import ovh.webnlog.amaporte.repository.MarkerRepository;
 import ovh.webnlog.amaporte.model.Amap;
+import ovh.webnlog.amaporte.ui.maps.IMarkerManagerListener;
 
 public class MarkerBusiness implements IMarkerBusinessListener {
 
-    private IMarkerBusinessListener listener;
+    private IMarkerManagerListener listener;
     public List<Amap> amapList;
 
-    public MarkerBusiness() {
-        listener = this;
+    public MarkerBusiness(IMarkerManagerListener listener) {
+        this.listener = listener;
+        amapList = new ArrayList<>();
     }
 
-    public void getAmap(Context context, LatLng latLng) {
-        MarkerData data = new MarkerData();
-        data.getAmap(context, latLng, listener);
+    public void getAmap(Context context) {
+        MarkerRepository data = new MarkerRepository(this);
+        data.getAmap(context);
     }
 
     @Override
     public void success(JSONObject response) {
         Gson gson = new Gson();
-        amapList = gson.fromJson(String.valueOf(response), new TypeToken<List<Amap>>(){}.getType());
-        Log.e("","");
+        String stringResponse = response.toString();
+        Type listType = new TypeToken<List<Amap>>(){}.getType();
+        amapList = gson.fromJson(stringResponse, listType);
+
+        listener.success(amapList);
     }
 
     @Override
