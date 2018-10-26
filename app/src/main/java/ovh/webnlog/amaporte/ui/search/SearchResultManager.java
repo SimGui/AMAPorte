@@ -87,7 +87,6 @@ public class SearchResultManager implements SearchView.OnQueryTextListener, Call
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        mapsManager.disableLocationComponent();
         CarmenFeature feature = cityList.get(position);
         LatLng latLng = new LatLng(feature.center().latitude(), feature.center().longitude());
         MainActivity mainActivity = (MainActivity) context;

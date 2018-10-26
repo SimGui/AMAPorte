@@ -4,44 +4,39 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.widget.Toast;
 
+import com.mapbox.android.core.location.LocationEngineListener;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
-import com.mapbox.mapboxsdk.annotations.MarkerOptions;
-import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
-import com.mapbox.mapboxsdk.location.LocationComponent;
-import com.mapbox.mapboxsdk.location.modes.CameraMode;
-import com.mapbox.mapboxsdk.location.modes.RenderMode;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import ovh.webnlog.amaporte.R;
-import ovh.webnlog.amaporte.business.MarkerBusiness;
-import ovh.webnlog.amaporte.model.Amap;
+import ovh.webnlog.amaporte.ui.MainActivity;
 import ovh.webnlog.amaporte.utils.Constant;
 
 import static android.content.Context.LOCATION_SERVICE;
 
-public class MapsManager implements OnMapReadyCallback, PermissionsListener {
+public class MapsManager implements OnMapReadyCallback, PermissionsListener, LocationListener {
 
     public MapView mapView;
     public MapboxMap map;
-    public LatLng location;
+    private LatLng userLocation;
+    LocationManager locationManager;
     private LocalizationPlugin localizationPlugin;
-    private LocationComponent locationComponent;
     private PermissionsManager permissionsManager;
     private Context context;
 
@@ -65,57 +60,58 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
     public void onMapReady(MapboxMap mapboxMap) {
         map = mapboxMap;
 
+        initLocationManager();
+        defineUserLocation();
         setMapBoxLanguage(mapboxMap);
-        setLocationComponent();
     }
 
     @SuppressLint("MissingPermission")
-    public void setLocationComponent() {
+    public void defineUserLocation() {
         if (permissionDenied()) {
             initPermissionManager();
             return;
         }
 
-        locationComponent = map.getLocationComponent();
-        locationComponent.activateLocationComponent(context);
-        locationComponent.setLocationComponentEnabled(true);
-        locationComponent.setRenderMode(RenderMode.NORMAL);
-        locationComponent.setCameraMode(CameraMode.TRACKING);
-        locationComponent.zoomWhileTracking(12, 2000);
-    }
+        Boolean gps_enabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        Boolean network_enabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
 
-    public void disableLocationComponent() {
-        locationComponent.setLocationComponentEnabled(false);
+        Location networkLocation = null;
+        Location gpsLocation = null;
+
+        if (gps_enabled)
+            gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        if (network_enabled)
+            networkLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
+        if(gpsLocation == null && networkLocation == null) {
+            Toast.makeText(context, "plop", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        setUserLocation(gpsLocation, networkLocation);
+
+        MainActivity mainActivity = (MainActivity) context;
+        mainActivity.locateUser(userLocation);
     }
 
     @SuppressLint("MissingPermission")
-    public LatLng locateUser() {
+    public LatLng getUserLocation() {
 
         if(permissionDenied()) {
             initPermissionManager();
             return null;
         }
 
-        if (haveToFindPosition()) {
-            locationComponent.setLocationComponentEnabled(true);
-            Toast.makeText(context, "Recherche de votre position...Veuillez patienter", Toast.LENGTH_LONG).show();
-            return null;
-        }
-
-        Location location = locationComponent.getLastKnownLocation();
-
-        if(location == null) {
+        if(userLocation == null) {
             Toast.makeText(context, context.getString(R.string.unknow_position), Toast.LENGTH_LONG).show();
             return null;
         }
 
-        return new LatLng(location.getLatitude(), location.getLongitude());
+        return userLocation;
     }
 
     public void moveCamera(LatLngBounds latLngBounds) {
-
-        map.animateCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds,50));
-
+        map.animateCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds,100));
     }
 
     @Override
@@ -126,7 +122,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
     @Override
     public void onPermissionResult(boolean granted) {
         if(granted) {
-            setLocationComponent();
+            defineUserLocation();
         }
     }
 
@@ -139,6 +135,12 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private void initLocationManager() {
+        locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5000, this);
+    }
+
     private void setMapBoxLanguage(MapboxMap mapboxMap) {
         localizationPlugin = new LocalizationPlugin(mapView, mapboxMap);
         localizationPlugin.matchMapLanguageWithDeviceDefault();
@@ -148,9 +150,10 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         return !PermissionsManager.areLocationPermissionsGranted(context);
     }
 
-    @SuppressLint("MissingPermission")
-    private boolean haveToFindPosition() {
-        return !locationComponent.isLocationComponentEnabled() && !gpsIsTurnOff() && locationComponent.getLastKnownLocation() == null;
+    private boolean gpsIsTurnOff() {
+        LocationManager locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
+
+        return !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 
     private void showGPSDisabledAlertToUser(){
@@ -165,10 +168,47 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener {
         alert.show();
     }
 
-    private boolean gpsIsTurnOff() {
-        LocationManager locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
+    private void setUserLocation(Location gpsLocation, Location networkLocation) {
+        Location finalLocation = null;
+        if (gpsLocation != null && networkLocation != null) {
+            if (gpsLocation.getAccuracy() > networkLocation.getAccuracy()) {
+                finalLocation = gpsLocation;
+            } else {
+                finalLocation = networkLocation;
+            }
+        } else {
+            if (gpsLocation != null) {
+                finalLocation = gpsLocation;
+            } else if (networkLocation != null) {
+                finalLocation = networkLocation;
+            }
+        }
 
-        return !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        this.userLocation = new LatLng(finalLocation.getLatitude(), finalLocation.getLongitude());
+    }
+
+    //endregion
+
+    //region LocationEngineListener methods
+
+    @Override
+    public void onLocationChanged(Location location) {
+        userLocation = new LatLng(location.getLatitude(), location.getLongitude());
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
     }
 
     //endregion

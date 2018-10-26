@@ -58,9 +58,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void locateUser(View view) {
-        LatLng userLocation = mapsManager.locateUser();
+        LatLng userLocation = mapsManager.getUserLocation();
         locateUser(userLocation);
-
     }
 
     public void locateUser(LatLng userLocation) {
