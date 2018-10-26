@@ -56,9 +56,10 @@ public class MarkerManager implements IMarkerManagerListener {
     }
 
     public void addMarkersOnMap(List<Amap> amapList, LatLng userLocation, MapboxMap map) {
+        map.removeAnnotations();
         // Create an Icon object for the marker to use
         IconFactory iconFactory = IconFactory.getInstance(context);
-        Icon icon = iconFactory.fromResource(R.drawable.ic_location_small_white_dot);
+        Icon icon = iconFactory.fromResource(R.drawable.ic_location_blue_dot);
 
         map.addMarker(new MarkerOptions()
         .position(userLocation)
