@@ -66,10 +66,15 @@ public class MainActivity extends AppCompatActivity {
         if(userLocation == null) {
             return;
         }
+
         List<Amap> filterListAmap = markerManager.filterMarkersForLocation(userLocation);
         markerManager.addMarkersOnMap(filterListAmap, userLocation, mapsManager.map);
         LatLngBounds bounds = markerManager.getBoundsForMarkers(filterListAmap, userLocation);
-        mapsManager.moveCamera(bounds);
+        if( bounds != null) {
+            mapsManager.moveCamera(bounds);
+        } else {
+            mapsManager.moveCamera(userLocation);
+        }
     }
 
     public void addAmap(View view) {

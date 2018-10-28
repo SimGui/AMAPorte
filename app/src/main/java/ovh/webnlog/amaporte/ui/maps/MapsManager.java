@@ -14,6 +14,7 @@ import com.mapbox.android.core.location.LocationEngineListener;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
@@ -84,7 +85,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener, Loc
             networkLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
         if(gpsLocation == null && networkLocation == null) {
-            Toast.makeText(context, "plop", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, context.getString(R.string.unknow_position), Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -114,6 +115,14 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener, Loc
         map.animateCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds,100));
     }
 
+    public void moveCamera(LatLng latLng) {
+        CameraPosition position = new CameraPosition.Builder()
+                .target(latLng) // Sets the new camera position
+                .zoom(10) // Sets the zoom to level 10
+                .build(); // Builds the CameraPosition object from the builder
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(position),4000);
+    }
+
     @Override
     public void onExplanationNeeded(List<String> permissionsToExplain) {
 
@@ -139,6 +148,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener, Loc
     private void initLocationManager() {
         locationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5000, this);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 5000, this);
     }
 
     private void setMapBoxLanguage(MapboxMap mapboxMap) {

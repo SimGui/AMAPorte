@@ -51,28 +51,61 @@ public class MarkerManager implements IMarkerManagerListener {
             listLatLng.add(latLngAmap);
         }
 
+        if(listLatLng.size() < 2) {
+            return null;
+        }
+
         LatLngBounds latLngBounds = new LatLngBounds.Builder().includes(listLatLng).build();
         return latLngBounds;
     }
 
     public void addMarkersOnMap(List<Amap> amapList, LatLng userLocation, MapboxMap map) {
         map.removeAnnotations();
-        // Create an Icon object for the marker to use
         IconFactory iconFactory = IconFactory.getInstance(context);
         Icon icon = iconFactory.fromResource(R.drawable.ic_location_blue_dot);
 
         map.addMarker(new MarkerOptions()
         .position(userLocation)
-        .icon(icon)
-        .title("Votre position"));
+        .icon(icon));
 
         for (Amap amap : amapList ) {
-            map.addMarker(new MarkerOptions()
-                    .position(new LatLng(amap.latitude, amap.longitude))
-                    .title(amap.title)
-                    .snippet(amap.description));
+            if(calculDistance(amap, userLocation) <= 30) {
+                map.addMarker(new MarkerOptions()
+                        .position(new LatLng(amap.latitude, amap.longitude))
+                        .title(amap.title)
+                        .snippet(amap.description));
+            }
         }
     }
+
+    //region Private methods
+
+    private double calculDistance(Amap amap, LatLng userLocation) {
+        //Degrees to Radians
+        double radLatitudeAmap = Math.toRadians(amap.latitude);
+        double radLongitudeAmap = Math.toRadians(amap.longitude);
+        double radLatitudeUserLocation = Math.toRadians(userLocation.getLatitude());
+        double radLongitudeUserLocation = Math.toRadians(userLocation.getLongitude());
+
+        //Cos
+        double cosLatitudeAmap = Math.cos(radLatitudeAmap);
+        double cosLatitudeUserLocation = Math.cos(radLatitudeUserLocation);
+        double cosLongitudeAmapAndUserLocation = Math.cos(radLongitudeAmap - radLongitudeUserLocation);
+
+        //Sin
+        double sinLatitudeAmap = Math.sin(radLatitudeAmap);
+        double sinLatitudeUserLocation = Math.sin(radLatitudeUserLocation);
+
+        //Multiplication
+        double multiplicationCos = cosLatitudeAmap * cosLatitudeUserLocation * cosLongitudeAmapAndUserLocation;
+        double multiplicationSin = sinLatitudeAmap * sinLatitudeUserLocation;
+        double distanceInKm = 6371 * Math.acos(multiplicationCos + multiplicationSin);
+
+        double round = Math.floor(distanceInKm);
+        return round;
+    }
+
+    //endregion
 
     //region MarkerListener
 
