@@ -47,8 +47,10 @@ public class MarkerManager implements IMarkerManagerListener {
         listLatLng.add(userLocation);
 
         for (Amap amap : amapList ) {
-            LatLng latLngAmap = new LatLng(amap.latitude,amap.longitude);
-            listLatLng.add(latLngAmap);
+            if(calculDistance(amap, userLocation) <= 30) {
+                LatLng latLngAmap = new LatLng(amap.latitude, amap.longitude);
+                listLatLng.add(latLngAmap);
+            }
         }
 
         if(listLatLng.size() < 2) {

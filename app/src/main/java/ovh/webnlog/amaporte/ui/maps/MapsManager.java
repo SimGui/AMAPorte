@@ -112,7 +112,7 @@ public class MapsManager implements OnMapReadyCallback, PermissionsListener, Loc
     }
 
     public void moveCamera(LatLngBounds latLngBounds) {
-        map.animateCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds,100));
+        map.animateCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds,300));
     }
 
     public void moveCamera(LatLng latLng) {
